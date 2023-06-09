@@ -9,11 +9,36 @@ app.get('/', (req, res) => {
 	res.sendFile(__dirname + '/index.html');
 });
 
+const userMap = {};
+
 io.on('connection', (socket) => {
-	socket.broadcast.emit('connected', 'user connected')
+	socket.on('set nickname', (nickname) => {
+		userMap[socket.id] = {
+			nickname,
+		};
+	});
+
+	socket.on('set color', (color) => {
+		userMap[socket.id].color = color;
+
+		socket.broadcast.emit('connected', {
+			...userMap[socket.id],
+			msg: 'has connected',
+		});
+	});
+
+	socket.on('chat message', (msg) => {
+		io.emit('chat message', {
+			...userMap[socket.id],
+			msg,
+		});
+	});
 
 	socket.on('disconnect', () => {
-		socket.broadcast.emit('disconnected', 'user disconnected');
+		socket.broadcast.emit('disconnected', {
+			...userMap[socket.id],
+			msg: 'has dicsonnected',
+		});
 	});
 });
 

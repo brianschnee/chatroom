@@ -53,6 +53,14 @@
 			#messages > li:nth-child(odd) {
 				background: #efefef;
 			}
+
+			.nickname {
+				font-weight: bold;
+			}
+
+			.msg::before {
+				content: ': ';
+			}
 		</style>
 	</head>
 	<body>
@@ -64,6 +72,22 @@
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
 			var socket = io();
+
+			let nickname;
+
+			while (!nickname) {
+				nickname = prompt('what would you like your nickname to be?');
+			}
+
+			socket.emit('set nickname', nickname);
+
+			let color;
+
+			while (!color) {
+				color = prompt('what color would you like your chat messages to be?');
+			}
+
+			socket.emit('set color', color);
 
 			var messages = document.getElementById('messages');
 			var form = document.getElementById('form');
@@ -78,11 +102,24 @@
 			});
 
 			socket.on('connected', appendToDOM);
+			socket.on('chat message', appendToDOM);
 			socket.on('disconnected', appendToDOM);
 
 			function appendToDOM(data) {
 				var li = document.createElement('li');
-        li.textContent = data
+
+				var nickname = document.createElement('span');
+				nickname.className = 'nickname';
+				nickname.textContent = data.nickname;
+				nickname.style.color = data.color;
+
+				var msg = document.createElement('span');
+				msg.textContent = data.msg;
+				msg.className = 'msg';
+
+				li.appendChild(nickname);
+				li.appendChild(msg);
+
 				messages.appendChild(li);
 				window.scrollTo(0, document.body.scrollHeight);
 			}
