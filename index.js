@@ -27,8 +27,20 @@ io.on('connection', (socket) => {
 		});
 	});
 
+	socket.on('is typing', () => {
+		socket.broadcast.emit('is typing', {
+			nickname: userMap[socket.id].nickname,
+		});
+	});
+
+	socket.on('remove active typer', () => {
+		socket.broadcast.emit('remove active typer', {
+			nickname: userMap[socket.id].nickname,
+		});
+	});
+
 	socket.on('chat message', (msg) => {
-		io.emit('chat message', {
+		socket.broadcast.emit('chat message', {
 			...userMap[socket.id],
 			msg,
 		});

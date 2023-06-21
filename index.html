@@ -10,18 +10,27 @@
 					Helvetica, Arial, sans-serif;
 			}
 
-			#form {
+			.fixed {
 				background: rgba(0, 0, 0, 0.15);
-				padding: 0.25rem;
+				padding: 0.75rem 0.25rem 0 0.25rem;
 				position: fixed;
 				bottom: 0;
 				left: 0;
 				right: 0;
+			}
+
+			#is-typing {
+				margin-left: 0.5rem;
+				height: 0.5rem;
+			}
+
+			#form {
 				display: flex;
 				height: 3rem;
 				box-sizing: border-box;
 				backdrop-filter: blur(10px);
 			}
+
 			#input {
 				border: none;
 				padding: 0 1rem;
@@ -65,13 +74,16 @@
 	</head>
 	<body>
 		<ul id="messages"></ul>
-		<form id="form" action="">
-			<input id="input" autocomplete="off" /><button>Send</button>
-		</form>
+		<div class="fixed">
+			<form id="form" action="">
+				<input id="input" autocomplete="off" /><button>Send</button>
+			</form>
+			<span id="is-typing"></span>
+		</div>
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
-			var socket = io();
+			const socket = io();
 
 			let nickname;
 
@@ -89,31 +101,81 @@
 
 			socket.emit('set color', color);
 
-			var messages = document.getElementById('messages');
-			var form = document.getElementById('form');
-			var input = document.getElementById('input');
+			const messages = document.getElementById('messages');
+			const form = document.getElementById('form');
+			const input = document.getElementById('input');
+			const usersTyping = document.getElementById('is-typing');
+			const activelyTyping = [];
 
-			form.addEventListener('submit', function (e) {
-				e.preventDefault();
-				if (input.value) {
-					socket.emit('chat message', input.value);
-					input.value = '';
+			let isTyping = false;
+
+			input.addEventListener('input', (e) => {
+				if (!isTyping) {
+					socket.emit('is typing');
+					isTyping = !isTyping;
+				}
+
+				if (!input.value) {
+					socket.emit('remove from is typing');
+					isTyping = false;
 				}
 			});
 
-			socket.on('connected', appendToDOM);
-			socket.on('chat message', appendToDOM);
-			socket.on('disconnected', appendToDOM);
+			form.addEventListener('submit', (e) => {
+				e.preventDefault();
 
-			function appendToDOM(data) {
-				var li = document.createElement('li');
+				if (input.value) {
+					socket.emit('chat message', input.value);
+					appendToMessages({ nickname, color, msg: input.value });
+					input.value = '';
+					isTyping = false;
+				}
+			});
 
-				var nickname = document.createElement('span');
+			socket.on('connected', appendToMessages);
+			socket.on('chat message', appendToMessages);
+			socket.on('is typing', (user) => {
+				activelyTyping.push(user);
+				updateUsersTyping();
+			});
+			socket.on('remove active typer', (user) => {
+				const indexOfUser = activelyTyping.find(
+					(typer) => typer.nickname === user.nickname,
+				);
+
+				activelyTyping.splice(indexOfUser, 1);
+				updateUsersTyping();
+			});
+			socket.on('disconnected', appendToMessages);
+
+			function updateUsersTyping() {
+				switch (activelyTyping.length) {
+					case 0:
+						usersTyping.textContent = '';
+						break;
+					case 1:
+						usersTyping.textContent = `${activelyTyping[0].nickname} is typing...`;
+						break;
+					case 2:
+						usersTyping.textContent = `${activelyTyping[0].nickname} and ${activelyTyping[1].nickname} are typing...`;
+						break;
+					default:
+						usersTyping.textContent = `${activelyTyping[0].nickname} and others are typing...`;
+						break;
+				}
+			}
+
+			function appendToMessages(data) {
+				socket.emit('remove active typer');
+
+				const li = document.createElement('li');
+
+				const nickname = document.createElement('span');
 				nickname.className = 'nickname';
 				nickname.textContent = data.nickname;
 				nickname.style.color = data.color;
 
-				var msg = document.createElement('span');
+				const msg = document.createElement('span');
 				msg.textContent = data.msg;
 				msg.className = 'msg';
 
