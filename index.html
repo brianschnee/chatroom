@@ -1,190 +1,72 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Socket.IO chat</title>
+		<title>Socket.IO Landing Page</title>
 		<style>
 			body {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
 				margin: 0;
-				padding-bottom: 3rem;
+				padding: 5rem 5rem 0 5rem;
 				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
 					Helvetica, Arial, sans-serif;
 			}
 
-			.fixed {
-				background: rgba(0, 0, 0, 0.15);
-				padding: 0.75rem 0.25rem 0 0.25rem;
-				position: fixed;
-				bottom: 0;
-				left: 0;
-				right: 0;
-			}
-
-			#is-typing {
-				margin-left: 0.5rem;
-				height: 0.5rem;
-			}
-
-			#form {
-				display: flex;
-				height: 3rem;
+			input,
+			select {
+				width: 100%;
+				padding: 12px 20px;
+				margin: 8px 0;
+				display: inline-block;
+				border: 1px solid #ccc;
+				border-radius: 4px;
 				box-sizing: border-box;
-				backdrop-filter: blur(10px);
 			}
 
-			#input {
+			button {
+				width: 100%;
+				background-color: #4caf50;
+				color: white;
+				padding: 14px 20px;
+				margin: 8px 0;
 				border: none;
-				padding: 0 1rem;
-				flex-grow: 1;
-				border-radius: 2rem;
-				margin: 0.25rem;
-			}
-			#input:focus {
-				outline: none;
-			}
-			#form > button {
-				background: #333;
-				border: none;
-				padding: 0 1rem;
-				margin: 0.25rem;
-				border-radius: 3px;
-				outline: none;
-				color: #fff;
+				border-radius: 4px;
+				cursor: pointer;
 			}
 
-			#messages {
-				list-style-type: none;
-				margin: 0;
-				padding: 0;
-			}
-			#messages > li {
-				padding: 0.5rem 1rem;
-			}
-			#messages > li:nth-child(odd) {
-				background: #efefef;
+			button:hover {
+				background-color: #45a049;
 			}
 
-			.nickname {
-				font-weight: bold;
-			}
-
-			.msg::before {
-				content: ': ';
+			div {
+				border-radius: 5px;
+				background-color: #f2f2f2;
+				padding: 20px;
+				max-width: 60rem;
 			}
 		</style>
 	</head>
 	<body>
-		<ul id="messages"></ul>
-		<div class="fixed">
-			<form id="form" action="">
-				<input id="input" autocomplete="off" /><button>Send</button>
+		<h1>Socket.io Chatroom</h1>
+		<div>
+			<form id="form" action="/chat">
+				<label for="nickname">Nickname:</label>
+				<input id="nickname" name="nickname" required />
+
+				<label for="color-select">Choose a color:</label>
+				<select name="color" id="color-select" required>
+					<option value="">--Please choose an option--</option>
+					<option value="red">red</option>
+					<option value="orange">orange</option>
+					<option value="green">green</option>
+					<option value="blue">blue</option>
+					<option value="pink">pink</option>
+					<option value="gray">gray</option>
+				</select>
+
+				<button>Enter</button>
 			</form>
-			<span id="is-typing"></span>
 		</div>
-
-		<script src="/socket.io/socket.io.js"></script>
-		<script>
-			const socket = io();
-
-			let nickname;
-
-			while (!nickname) {
-				nickname = prompt('what would you like your nickname to be?');
-			}
-
-			socket.emit('set nickname', nickname);
-
-			let color;
-
-			while (!color) {
-				color = prompt('what color would you like your chat messages to be?');
-			}
-
-			socket.emit('set color', color);
-
-			const messages = document.getElementById('messages');
-			const form = document.getElementById('form');
-			const input = document.getElementById('input');
-			const usersTyping = document.getElementById('is-typing');
-			const activelyTyping = [];
-
-			let isTyping = false;
-
-			input.addEventListener('input', (e) => {
-				if (!isTyping) {
-					socket.emit('is typing');
-					isTyping = !isTyping;
-				}
-
-				if (!input.value) {
-					socket.emit('remove from is typing');
-					isTyping = false;
-				}
-			});
-
-			form.addEventListener('submit', (e) => {
-				e.preventDefault();
-
-				if (input.value) {
-					socket.emit('chat message', input.value);
-					appendToMessages({ nickname, color, msg: input.value });
-					input.value = '';
-					isTyping = false;
-				}
-			});
-
-			socket.on('connected', appendToMessages);
-			socket.on('chat message', appendToMessages);
-			socket.on('is typing', (user) => {
-				activelyTyping.push(user);
-				updateUsersTyping();
-			});
-			socket.on('remove active typer', (user) => {
-				const indexOfUser = activelyTyping.find(
-					(typer) => typer.nickname === user.nickname,
-				);
-
-				activelyTyping.splice(indexOfUser, 1);
-				updateUsersTyping();
-			});
-			socket.on('disconnected', appendToMessages);
-
-			function updateUsersTyping() {
-				switch (activelyTyping.length) {
-					case 0:
-						usersTyping.textContent = '';
-						break;
-					case 1:
-						usersTyping.textContent = `${activelyTyping[0].nickname} is typing...`;
-						break;
-					case 2:
-						usersTyping.textContent = `${activelyTyping[0].nickname} and ${activelyTyping[1].nickname} are typing...`;
-						break;
-					default:
-						usersTyping.textContent = `${activelyTyping[0].nickname} and others are typing...`;
-						break;
-				}
-			}
-
-			function appendToMessages(data) {
-				socket.emit('remove active typer');
-
-				const li = document.createElement('li');
-
-				const nickname = document.createElement('span');
-				nickname.className = 'nickname';
-				nickname.textContent = data.nickname;
-				nickname.style.color = data.color;
-
-				const msg = document.createElement('span');
-				msg.textContent = data.msg;
-				msg.className = 'msg';
-
-				li.appendChild(nickname);
-				li.appendChild(msg);
-
-				messages.appendChild(li);
-				window.scrollTo(0, document.body.scrollHeight);
-			}
-		</script>
 	</body>
 </html>
