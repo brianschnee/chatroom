@@ -9,22 +9,25 @@ app.get('/', (req, res) => {
 	res.sendFile(__dirname + '/index.html');
 });
 
+let nickname, color;
+
+app.get('/chat', (req, res) => {
+	nickname = req.query.nickname;
+	color = req.query.color;
+	res.sendFile(__dirname + '/chat.html');
+});
+
 const userMap = {};
 
 io.on('connection', (socket) => {
-	socket.on('set nickname', (nickname) => {
-		userMap[socket.id] = {
-			nickname,
-		};
-	});
+	userMap[socket.id] = {
+		nickname,
+		color,
+	};
 
-	socket.on('set color', (color) => {
-		userMap[socket.id].color = color;
-
-		socket.broadcast.emit('connected', {
-			...userMap[socket.id],
-			msg: 'has connected',
-		});
+	socket.broadcast.emit('connected', {
+		...userMap[socket.id],
+		msg: 'has connected',
 	});
 
 	socket.on('is typing', () => {
