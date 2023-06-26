@@ -52,7 +52,13 @@
 		<div>
 			<form id="form" action="/chat">
 				<label for="nickname">Nickname:</label>
-				<input id="nickname" name="nickname" required />
+				<input
+					id="nickname"
+					name="nickname"
+					minlength="4"
+					maxlength="25"
+					required
+				/>
 
 				<label for="color-select">Choose a color:</label>
 				<select name="color" id="color-select" required>
