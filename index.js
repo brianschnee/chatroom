@@ -12,6 +12,10 @@ app.get('/', (req, res) => {
 let nickname, color;
 
 app.get('/chat', (req, res) => {
+	if (!req.query.nickname || !req.query.nickname) {
+		res.sendFile(__dirname + '/index.html');
+	}
+
 	nickname = req.query.nickname;
 	color = req.query.color;
 	res.sendFile(__dirname + '/chat.html');
